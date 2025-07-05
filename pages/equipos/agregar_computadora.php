@@ -38,7 +38,11 @@ if (!$computadora_details) {
 // Cargar monitores existentes para el select
 $monitores_disponibles = [];
 // Solo monitores que no estén asignados a otra computadora
-$stmt_monitores = $conn->prepare("SELECT m.id, m.serial FROM monitores m LEFT JOIN equipos_computadoras ec ON m.id = ec.id_monitor_asignado WHERE ec.id_monitor_asignado IS NULL OR ec.id_equipo = ?");
+$stmt_monitores = $conn->prepare("SELECT e.id, e.serial FROM equipos e 
+                                 INNER JOIN tipos_equipo te ON e.id_tipo_equipo = te.id 
+                                 LEFT JOIN equipos_computadoras ec ON e.id = ec.id_monitor_asignado 
+                                 WHERE te.tipo LIKE '%monitor%' AND e.activo = 1 
+                                 AND (ec.id_monitor_asignado IS NULL OR ec.id_equipo = ?)");
 $stmt_monitores->bind_param("i", $id_equipo); // Incluir el monitor si ya está asignado a esta PC
 $stmt_monitores->execute();
 $result_monitores = $stmt_monitores->get_result();
@@ -58,17 +62,33 @@ if (!$id_tipo_monitor_global) {
 }
 
 
-// Cargar datos del equipo principal para obtener finca y persona (si es necesario)
-$equipo_principal = $conn->query("SELECT id_finca_ubicacion, id_persona_acargo, id_estado FROM equipos WHERE id = $id_equipo")->fetch_assoc();
-$finca_principal_id = $equipo_principal['id_finca_ubicacion'] ?? '';
-$persona_principal_id = $equipo_principal['id_persona_acargo'] ?? '';
-$estado_principal_id = $equipo_principal['id_estado'] ?? '';
+// Cargar datos del equipo principal para obtener finca y persona
+// Primero intentar obtener de los parámetros URL (si vienen de agregar_equipo.php)
+$finca_principal_id = $_GET['id_finca'] ?? '';
+$persona_principal_id = $_GET['id_persona'] ?? '';
+$estado_principal_id = $_GET['id_estado'] ?? '';
+
+// Si no están en URL, obtener de la base de datos
+if (empty($finca_principal_id) || empty($persona_principal_id) || empty($estado_principal_id)) {
+    $equipo_principal = $conn->query("SELECT id_finca_ubicacion, id_persona_acargo, id_estado FROM equipos WHERE id = $id_equipo")->fetch_assoc();
+    $finca_principal_id = $equipo_principal['id_finca_ubicacion'] ?? '';
+    $persona_principal_id = $equipo_principal['id_persona_acargo'] ?? '';
+    $estado_principal_id = $equipo_principal['id_estado'] ?? '';
+}
 
 
-// Cargar estados para el modal del monitor
+// Cargar datos para los dropdowns del modal del monitor
 $estados_monitor = [];
 $result_estados = $conn->query("SELECT id, estado FROM estados_equipo ORDER BY estado");
 while($row = $result_estados->fetch_assoc()) $estados_monitor[] = $row;
+
+$personas = [];
+$result = $conn->query("SELECT id, nombres, apellidos FROM personas ORDER BY nombres, apellidos");
+while($row = $result->fetch_assoc()) $personas[] = $row;
+
+$fincas = [];
+$result = $conn->query("SELECT id, nombre_finca FROM fincas ORDER BY nombre_finca");
+while($row = $result->fetch_assoc()) $fincas[] = $row;
 
 
 // Procesar el formulario POST (cuando se guardan los detalles de la computadora)
@@ -155,11 +175,13 @@ require_once '../../includes/navbar.php'; // Si tienes un navbar separado
                     <!-- Incluye el formulario parcial para el monitor -->
                     <?php
                     // Pasa las variables necesarias al formulario parcial del monitor
-                    // Estas variables se usarán para los dropdowns dentro del modal si los añades
-                    $fincas_modal = $fincas; // Ya cargadas en agregar_equipo.php
-                    $personas_modal = $personas; // Ya cargadas en agregar_equipo.php
-                    $estados_modal = $estados_monitor; // Específicos para el modal del monitor
-                    $id_tipo_monitor_global_val = $id_tipo_monitor_global; // ID del tipo 'Monitor'
+                    $fincas_modal = $fincas;
+                    $personas_modal = $personas;
+                    $estados_modal = $estados_monitor;
+                    $id_tipo_monitor_global_val = $id_tipo_monitor_global;
+                    $finca_seleccionada = $finca_principal_id;
+                    $persona_seleccionada = $persona_principal_id;
+                    $estado_seleccionado = $estado_principal_id;
                     ?>
                     <?php include 'form_monitor.php'; ?>
                 </div>
@@ -199,18 +221,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const personaPrincipalId = "<?php echo htmlspecialchars($persona_principal_id); ?>";
         const estadoPrincipalId = "<?php echo htmlspecialchars($estado_principal_id); ?>"; // Para el estado del monitor
 
-        // Asignar estos valores a los campos ocultos dentro del formulario del modal
+        // Asignar estos valores a los campos visibles dentro del formulario del modal
+        var selectFincaModal = document.getElementById('monitor_id_finca_ubicacion');
+        if (selectFincaModal) selectFincaModal.value = fincaPrincipalId;
+        
+        var selectPersonaModal = document.getElementById('monitor_id_persona_acargo');
+        if (selectPersonaModal) selectPersonaModal.value = personaPrincipalId;
+        
+        var selectEstadoModal = document.getElementById('monitor_id_estado');
+        if (selectEstadoModal) selectEstadoModal.value = estadoPrincipalId;
+
+        // También asignar a los campos ocultos para compatibilidad
         document.getElementById('monitor_id_finca_ubicacion_hidden').value = fincaPrincipalId;
         document.getElementById('monitor_id_persona_acargo_hidden').value = personaPrincipalId;
-        document.getElementById('monitor_id_estado_hidden').value = estadoPrincipalId; // Pasar el estado
-
-        // Opcional: Si quieres que los selects del modal se pre-seleccionen (si los haces visibles)
-        // var selectFincaModal = document.getElementById('monitor_id_finca_ubicacion');
-        // if (selectFincaModal) selectFincaModal.value = fincaPrincipalId;
-        // var selectPersonaModal = document.getElementById('monitor_id_persona_acargo');
-        // if (selectPersonaModal) selectPersonaModal.value = personaPrincipalId;
-        // var selectEstadoModal = document.getElementById('monitor_id_estado');
-        // if (selectEstadoModal) selectEstadoModal.value = estadoPrincipalId;
+        document.getElementById('monitor_id_estado_hidden').value = estadoPrincipalId;
     });
 
     // Manejar el envío del formulario del modal (formMonitorNuevo) vía AJAX
@@ -240,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 alert('Monitor agregado con éxito: ' + data.monitor.serial);
                 // Actualizar el select de monitores en el formulario principal
-                var selectMonitor = document.getElementById('id_monitor_asignado');
+                var selectMonitor = document.getElementById('monitor');
                 var newOption = new Option(data.monitor.serial, data.monitor.id, true, true);
                 selectMonitor.add(newOption);
                 selectMonitor.value = data.monitor.id; // Selecciona el nuevo monitor

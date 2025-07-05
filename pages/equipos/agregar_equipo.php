@@ -103,7 +103,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $id_equipo = $stmt->insert_id;
             $tipo = $conn->query("SELECT tipo FROM tipos_equipo WHERE id = $id_tipo_equipo")->fetch_assoc()['tipo'];
             if (stripos($tipo, 'computadora') !== false || stripos($tipo, 'laptop') !== false || stripos($tipo, 'tablet') !== false) {
-                header("Location: agregar_computadora.php?id_equipo=$id_equipo");
+                header("Location: agregar_computadora.php?id_equipo=$id_equipo&id_finca=$id_finca_ubicacion&id_persona=$id_persona_acargo&id_estado=$id_estado");
             } elseif (stripos($tipo, 'radio') !== false) {
                 header("Location: agregar_radio.php?id_equipo=$id_equipo");
             } elseif (stripos($tipo, 'impresora') !== false) {

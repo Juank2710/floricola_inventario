@@ -4,7 +4,9 @@ include_once __DIR__ . '/../../includes/db_config.php';
 
 // Obtener monitores disponibles
 function obtener_monitores($conn) {
-    $result = $conn->query("SELECT id, serial FROM monitores");
+    $result = $conn->query("SELECT e.id, e.serial FROM equipos e 
+                           INNER JOIN tipos_equipo te ON e.id_tipo_equipo = te.id 
+                           WHERE te.tipo LIKE '%monitor%' AND e.activo = 1");
     $monitores = [];
     while ($row = $result->fetch_assoc()) $monitores[] = $row;
     return $monitores;
