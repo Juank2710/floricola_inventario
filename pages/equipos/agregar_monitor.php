@@ -11,8 +11,9 @@ $fecha_compra = $_POST['monitor_fecha_compra'] ?? '';
 $observaciones = $_POST['monitor_observaciones'] ?? '';
 $id_finca = $_POST['monitor_id_finca_ubicacion'] ?? '';
 $id_persona = $_POST['monitor_id_persona_acargo'] ?? '';
+$id_estado = $_POST['monitor_id_estado'] ?? '';
 
-if (!$serial || !$id_finca || !$id_persona) {
+if (!$serial || !$id_finca || !$id_persona || !$id_estado) {
     echo json_encode(['success' => false, 'message' => 'Datos incompletos para el monitor']);
     exit;
 }
@@ -29,8 +30,8 @@ if ($stmt->num_rows > 0) {
 $stmt->close();
 
 // Insertar monitor
-$stmt = $conn->prepare("INSERT INTO monitores (serial, marca, modelo, pulgadas, fecha_compra, observaciones, id_finca_ubicacion, id_persona_acargo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-$stmt->bind_param("ssssssii", $serial, $marca, $modelo, $pulgadas, $fecha_compra, $observaciones, $id_finca, $id_persona);
+$stmt = $conn->prepare("INSERT INTO monitores (serial, marca, modelo, pulgadas, fecha_compra, observaciones, id_finca_ubicacion, id_persona_acargo, id_estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("ssssssiii", $serial, $marca, $modelo, $pulgadas, $fecha_compra, $observaciones, $id_finca, $id_persona, $id_estado);
 if ($stmt->execute()) {
     $id = $stmt->insert_id;
     echo json_encode([

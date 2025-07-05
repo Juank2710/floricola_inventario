@@ -28,3 +28,4 @@
 </div>
 <input type="hidden" id="monitor_id_finca_ubicacion_hidden" name="monitor_id_finca_ubicacion">
 <input type="hidden" id="monitor_id_persona_acargo_hidden" name="monitor_id_persona_acargo">
+<input type="hidden" id="monitor_id_estado_hidden" name="monitor_id_estado">
