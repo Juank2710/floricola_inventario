@@ -8,6 +8,13 @@ if (!isset($_SESSION['user_id'])) {
 require_once '../../includes/db_config.php'; // Asegúrate de que connectDB() esté aquí
 require_once '../../includes/functions.php'; // Para sanitize_input
 
+// Si la función no existe, defínela aquí como respaldo
+if (!function_exists('sanitize_input')) {
+    function sanitize_input($data) {
+        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+    }
+}
+
 $page_title = "Agregar Detalles de Computadora";
 
 $conn = connectDB(); // Conexión a la base de datos
