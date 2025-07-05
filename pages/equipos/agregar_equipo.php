@@ -226,9 +226,4 @@ require_once '../../includes/navbar.php';
 <?php
 require_once '../../includes/footer.php';
 ?>
-<select class="form-select" id="id_finca_ubicacion" name="id_finca_ubicacion" required>
-    <!-- ... -->
-</select>
-<select class="form-select" id="id_persona_acargo" name="id_persona_acargo">
-    <!-- ... -->
-</select>
+

@@ -6,7 +6,6 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 require_once '../../includes/db_config.php'; // Asegúrate de que connectDB() esté aquí
-require_once '../../includes/functions.php'; // Para sanitize_input
 
 // Si la función no existe, defínela aquí como respaldo
 if (!function_exists('sanitize_input')) {
